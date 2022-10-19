@@ -58,10 +58,10 @@ int VideoTag::analysisNalUint(ReadStream &rs, std::ofstream &file) {
             break;
         }
         uint32_t nalUintSize = rs.readMultiBit((AVCConfig.lengthSizeMinusOne + 1) * 8);
-        /*{
+        {
             uint8_t nalUnit = rs.getMultiBit(8) & 31;
             int aaaaaa = 1;
-        }*/
+        }
         file.write(reinterpret_cast<const char *>(startCode), 4);
         file.write(reinterpret_cast<const char *>(rs.currentPtr), nalUintSize);
         rs.setBytePtr(nalUintSize);

@@ -20,9 +20,11 @@ int FLVFileBody::parseHeader(std::ifstream &fs, std::ofstream &videoOutFile, std
 
 
     if (tagHeader.TagType == 8) {
+        printf("audio\n");
         AudioTag tag{};
         tag.parseData(fs, tagHeader.DataSize, audioOutFile);
     } else if (tagHeader.TagType == 9) {
+        printf("video\n");
         VideoTag tag{};
         tag.parseData(fs, tagHeader.DataSize, videoOutFile);
     } else if (tagHeader.TagType == 18) {

@@ -25,6 +25,7 @@ int main() {
     Mux mux;
 
 
+    mux.initAudio("resource/ouput1.aac");
     mux.initVideo("resource/ouput.h264");
 
     mux.packaging("resource/test.flv");

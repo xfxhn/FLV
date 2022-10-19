@@ -1,6 +1,7 @@
 ﻿
 add_subdirectory(bitStream)
 add_subdirectory(nalu)
+add_subdirectory(adts)
 add_subdirectory(mux)
 add_subdirectory(FLVHeader)
 
