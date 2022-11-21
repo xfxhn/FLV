@@ -19,14 +19,14 @@ private:
     /*编码标准*/
     uint8_t codecID;
     uint8_t AVCPacketType;
-    uint8_t compositionTime;
+    uint32_t compositionTime;
 
 private:
 
-    int analysisNalUint(ReadStream &rs, std::ofstream &file);
+    static int analysisNalUint(ReadStream &rs, std::ofstream &file);
 
 public:
-    int parseData(std::ifstream &fs, uint32_t size, std::ofstream &videoOutFile);
+    int parseData(std::ifstream &fs, uint32_t size, std::ofstream &videoOutFile, uint32_t realTimestamp);
 };
 
 

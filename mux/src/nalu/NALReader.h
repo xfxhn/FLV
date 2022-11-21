@@ -24,7 +24,7 @@ private:
 public:
     int init(const char *filename);
 
-    int readNalUint(uint8_t *&data, uint32_t &size, bool &isStopLoop);
+    int readNalUint(uint8_t *&data, uint32_t &size, int &startCodeLength, bool &isStopLoop);
 
     ~NaluReader();
 };

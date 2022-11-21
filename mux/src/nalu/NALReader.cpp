@@ -19,7 +19,7 @@ int NaluReader::init(const char *filename) {
     return 0;
 }
 
-int NaluReader::readNalUint(uint8_t *&data, uint32_t &size, bool &isStopLoop) {
+int NaluReader::readNalUint(uint8_t *&data, uint32_t &size, int &startCodeLength, bool &isStopLoop) {
 
     while (true) {
         uint8_t *pos1 = nullptr;
@@ -29,6 +29,7 @@ int NaluReader::readNalUint(uint8_t *&data, uint32_t &size, bool &isStopLoop) {
 
         const int type = getNextStartCode(bufferPosition, bufferEnd,
                                           pos1, pos2, startCodeLen1, startCodeLen2);
+        startCodeLength = startCodeLen1;
         /*还剩多少字节未读取*/
         uint32_t residual = (bufferEnd - pos1 + 1);
         /*已经读取了多少个字节*/
@@ -43,10 +44,6 @@ int NaluReader::readNalUint(uint8_t *&data, uint32_t &size, bool &isStopLoop) {
 
             if (bufferSize == 0) {
                 //表示读完数据了
-
-                /* uint8_t *EBSP = bufferStart + startCodeLen1;
-                 size = EBSP_TO_RBSP(EBSP, residual - startCodeLen1);
-                 data = EBSP;*/
                 size = residual - startCodeLen1;
                 data = bufferStart + startCodeLen1;
                 isStopLoop = false;
@@ -59,10 +56,7 @@ int NaluReader::readNalUint(uint8_t *&data, uint32_t &size, bool &isStopLoop) {
 
             data = pos1 + startCodeLen1;
             size = pos2 - data;
-            /* uint8_t *EBSP = pos1 + startCodeLen1;
-             size_t EBSPSize = pos2 - EBSP;
-             size = EBSP_TO_RBSP(EBSP, EBSPSize);
-             data = EBSP;*/
+
             bufferPosition = pos2;// data + size;
             break;
         } else {

@@ -2,32 +2,45 @@
 
 #include "mux.h"
 
-void ebsp_to_rbsp(uint8_t *data, uint32_t size) {
-    uint32_t NumBytesInRBSP = 0;
-    for (uint32_t i = 0; i < size; i++) {
-        if ((i + 2 < size) && data[i] == 0 && data[i + 1] == 0 && data[i + 2] == 3) {
-            data[NumBytesInRBSP++] = data[i];
-            data[NumBytesInRBSP++] = data[i + 1];
-            i += 2;
-        } else {
-            data[NumBytesInRBSP++] = data[i];
-        }
-    }
-}
+
+#include "readStream.h"
+#include "writeStream.h"
+
+#include <cstring>
+
+#include <thread>
+#include <mutex>
+
 
 int main() {
 
-    /*uint8_t arr[11] = {21, 3, 0, 0, 3, 12, 5, 5, 0, 0, 3,};
-
-    ebsp_to_rbsp(arr, 11);*/
-
-
+    int ret;
     Mux mux;
+/*ouput.h264*/
+
+    ret = mux.packaging("resource/test.flv");
+    if (ret < 0) {
+        return ret;
+    }
 
 
-    mux.initAudio("resource/ouput1.aac");
-    mux.initVideo("resource/ouput.h264");
+    std::thread th1(&Mux::initVideo, &mux, "resource/slice3gop2.h264");
+    std::thread th2(&Mux::initAudio, &mux, "resource/ouput1.aac");
 
-    mux.packaging("resource/test.flv");
+
+    th1.join();
+    th2.join();
+
+    mux.flushFlv();
+    /*ret = mux.initAudio("resource/ouput1.aac");
+    if (ret < 0) {
+        return ret;
+    }*/
+
+    /*ret = mux.initVideo("resource/slice3gop2.h264");
+    if (ret < 0) {
+        return ret;
+    }*/
+
     return 0;
 }

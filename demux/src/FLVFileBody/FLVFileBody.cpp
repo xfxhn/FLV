@@ -20,19 +20,21 @@ int FLVFileBody::parseHeader(std::ifstream &fs, std::ofstream &videoOutFile, std
 
 
     if (tagHeader.TagType == 8) {
-        printf("audio\n");
+        //printf("audio\n");
         AudioTag tag{};
         tag.parseData(fs, tagHeader.DataSize, audioOutFile);
     } else if (tagHeader.TagType == 9) {
-        printf("video\n");
+        //printf("video\n");
         VideoTag tag{};
-        tag.parseData(fs, tagHeader.DataSize, videoOutFile);
+        tag.parseData(fs, tagHeader.DataSize, videoOutFile, tagHeader.realTimestamp);
     } else if (tagHeader.TagType == 18) {
         ScriptTag tag;
         tag.parseData(fs, tagHeader.DataSize);
         tag.printData();
     } else {
+
         fprintf(stderr, "this is tagType non-supported %d\n ", tagHeader.TagType);
+        return -1;
     }
 
     return 0;

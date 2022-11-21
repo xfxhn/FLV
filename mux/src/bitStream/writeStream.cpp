@@ -13,9 +13,8 @@ WriteStream::WriteStream(uint8_t *buf, uint32_t size) {
 }
 
 uint8_t WriteStream::writeBit(uint8_t bit) {
-    uint32_t ret = *currentPtr;
     --bitsLeft;
-    uint8_t val = ret >> (bitsLeft);
+    uint8_t val = *currentPtr >> (bitsLeft);
     *currentPtr = (unsigned) (val | bit) << (bitsLeft);
 
     if (bitsLeft == 0) {
@@ -26,7 +25,7 @@ uint8_t WriteStream::writeBit(uint8_t bit) {
     return 0;
 }
 
-int WriteStream::writeMultiBit(uint32_t n, uint32_t val) {
+int WriteStream::writeMultiBit(uint32_t n, uint64_t val) {
     uint8_t bitPos = n;
     for (int i = 0; i < n; ++i) {
         --bitPos;
@@ -36,9 +35,15 @@ int WriteStream::writeMultiBit(uint32_t n, uint32_t val) {
     return 0;
 }
 
-int WriteStream::setString(char *str, uint32_t n) {
+int WriteStream::setString(const char *str, uint32_t n) {
     for (int i = 0; i < n; ++i) {
         writeMultiBit(8, str[i]);
     }
     return 0;
+}
+
+void WriteStream::setBytePtr(uint32_t n) {
+    currentPtr += n;
+    position += n;
+    bitsLeft = 8;
 }

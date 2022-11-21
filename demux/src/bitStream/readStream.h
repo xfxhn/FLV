@@ -35,7 +35,7 @@ public:
     int getString(char str[], uint32_t n);
 
     //获取n个bit
-    uint32_t getMultiBit(uint32_t n);
+    uint64_t getMultiBit(uint32_t n);
 
     /*字节对齐*/
     int byteAlignment();

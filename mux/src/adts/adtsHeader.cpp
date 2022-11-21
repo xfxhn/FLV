@@ -1,7 +1,7 @@
 ﻿
 #include "adtsHeader.h"
 
-
+#include <cstdio>
 #include "readStream.h"
 
 enum AudioObjectType {
@@ -20,8 +20,12 @@ int AdtsHeader::adts_fixed_header(ReadStream &rs) {
     ID = rs.readBit();
     layer = rs.readMultiBit(2);
     protection_absent = rs.readMultiBit(1);
+    if (protection_absent == 0) {
+        fprintf(stderr, "不支持CRC校验\n");
+        return -1;
+    }
     profile = rs.readMultiBit(2);
-    objectType = profile;
+    /*objectType = profile;*/
     sampling_frequency_index = rs.readMultiBit(4);
     sample_rate = adts_sample_rates[sampling_frequency_index];
     private_bit = rs.readBit();

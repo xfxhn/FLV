@@ -6,6 +6,50 @@
 
 #include "readStream.h"
 
+
+/*参考table A-1*/
+struct levelLimits {
+    int levelNumber;
+    //最大宏块处理速率
+    int MaxMBPS;
+    //最大帧尺寸
+    int MaxFS;
+    //最大解码图片缓冲区大小
+    int MaxDpbMbs;
+    //最大视频比特率
+    int MaxBR;
+//    //最大 CPB 尺寸
+//    int MaxCPB;
+//    //垂直MV分量极限
+//    int MaxVmvR;
+//    //最小压缩率
+//    int MinCR;
+//    //每两个连续 MB 的 MV 最大数
+//    int MaxMvsPer2Mb;
+};
+
+static levelLimits levelTable[] = {
+        {10, 1485,     99,     396,    64},
+        {11, 3000,     396,    900,    192},
+        {12, 6000,     396,    2376,   384},
+        {13, 11880,    396,    2376,   768},
+        {20, 11880,    396,    2376,   2000},
+        {21, 19800,    792,    4752,   4000},
+        {22, 20250,    1620,   8100,   4000},
+        {30, 40500,    1620,   8100,   1000},
+        {31, 108000,   3600,   18000,  14000},
+        {32, 216000,   5120,   20480,  20000},
+        {40, 245760,   8192,   32768,  20000},
+        {41, 245760,   8192,   32768,  50000},
+        {42, 522240,   8704,   34816,  50000},
+        {50, 589824,   22080,  110400, 135000},
+        {51, 983040,   36864,  184320, 240000},
+        {52, 2073600,  36864,  184320, 240000},
+        {60, 4177920,  139264, 696320, 240000},
+        {61, 8355840,  139264, 696320, 480000},
+        {62, 16711680, 139264, 696320, 800000},
+};
+
 int NALSeqParameterSet::seq_parameter_set_data(ReadStream &rs) {
     int ret = 0;
     //编码等级
@@ -18,13 +62,13 @@ int NALSeqParameterSet::seq_parameter_set_data(ReadStream &rs) {
     122	High 4:2 : 2 (FRExt)
     144	High 4 : 4 : 4 (FRExt)*/
     profile_idc = rs.readMultiBit(8);
-    constraint_set0_flag = rs.readMultiBit(1); //constraint_set0_flag 0 u(1)
-    constraint_set1_flag = rs.readMultiBit(1); //constraint_set1_flag 0 u(1)
-    constraint_set2_flag = rs.readMultiBit(1); //constraint_set2_flag 0 u(1)
-    constraint_set3_flag = rs.readMultiBit(1); //constraint_set3_flag 0 u(1)
-    constraint_set4_flag = rs.readMultiBit(1); //constraint_set4_flag 0 u(1)
-    constraint_set5_flag = rs.readMultiBit(1); //constraint_set5_flag 0 u(1)
-    rs.readMultiBit(2); //reserved_zero_2bits /* equal to 0 */ 0 u(2)
+    constraint_set0_flag = rs.readMultiBit(1);
+    constraint_set1_flag = rs.readMultiBit(1);
+    constraint_set2_flag = rs.readMultiBit(1);
+    constraint_set3_flag = rs.readMultiBit(1);
+    constraint_set4_flag = rs.readMultiBit(1);
+    constraint_set5_flag = rs.readMultiBit(1);
+    rs.readMultiBit(2); //reserved_zero_2bits /* equal to 0 */
     level_idc = rs.readMultiBit(8); //level_idc 0 u(8)
     //要解码一个 Slice，需要有 SPS 和 PPS
     //但是码流中会有很多个SPS和PPS
@@ -158,7 +202,8 @@ int NALSeqParameterSet::seq_parameter_set_data(ReadStream &rs) {
     //这个句法元素同时也指明了frame_num 的所能达到的最大值:MaxFrameNum = 2*exp( log2_max_frame_num_minus4 + 4 )
     //最大帧率
     log2_max_frame_num_minus4 = rs.readUE();//0 - 12
-    MaxFrameNum = std::pow(2, log2_max_frame_num_minus4 + 4);
+
+    MaxFrameNum = static_cast<uint16_t> (std::pow(2, log2_max_frame_num_minus4 + 4));
     //指明了 poc  (picture  order  count)  的编码方法，poc 标识图像的播放顺序。
     //由poc 可以由 frame-num 通过映射关系计算得来，也可以索性由编码器显式地传送。
     //是指解码图像顺序的计数方法（如  8.2.1 节所述）。pic_order_cnt_type 的取值范围是0 到 2（包括0 和2）。
@@ -166,16 +211,19 @@ int NALSeqParameterSet::seq_parameter_set_data(ReadStream &rs) {
 
     if (pic_order_cnt_type == 0) {
         log2_max_pic_order_cnt_lsb_minus4 = rs.readUE(); //取值范围应该在0-12
-        MaxPicOrderCntLsb = std::pow(2, log2_max_pic_order_cnt_lsb_minus4 + 4);
+        /*表示POC的上限*/
+        MaxPicOrderCntLsb = static_cast<uint16_t> (std::pow(2u, log2_max_pic_order_cnt_lsb_minus4 + 4u));
     } else if (this->pic_order_cnt_type == 1) {
-        delta_pic_order_always_zero_flag = rs.readBit(); //delta_pic_order_always_zero_flag 0 u(1)
+        /*等于 1 时,句法元素 delta_pic_order_cnt[0]和 delta_pic_order_cnt[1]不在片头出现,并且它们的值默认为 0;
+         * 本句法元素等于 0 时,上述的两个句法元素将在片头出现*/
+        delta_pic_order_always_zero_flag = rs.readBit();
         //用于非参考图像的图像顺序号
         offset_for_non_ref_pic = rs.readSE();
-        offset_for_top_to_bottom_field = rs.readSE(); //offset_for_top_to_bottom_field 0 se(v)
-        num_ref_frames_in_pic_order_cnt_cycle = rs.readUE(); //num_ref_frames_in_pic_order_cnt_cycle 0 ue(v)
+        offset_for_top_to_bottom_field = rs.readSE();
+        num_ref_frames_in_pic_order_cnt_cycle = rs.readUE();
 
         for (size_t i = 0; i < num_ref_frames_in_pic_order_cnt_cycle; i++) {
-            offset_for_ref_frame[i] = rs.readSE(); //offset_for_ref_frame[ i ] 0 se(v)
+            offset_for_ref_frame[i] = rs.readSE();
             ExpectedDeltaPerPicOrderCntCycle += offset_for_ref_frame[i];
         }
 
@@ -198,9 +246,9 @@ int NALSeqParameterSet::seq_parameter_set_data(ReadStream &rs) {
     if (!frame_mbs_only_flag) {
         //采用了场编码的情况下
         //是否采用红快级别帧场自适应的问题 ，是否可以在帧编码和场编码相互切换 //帧场自适应
-        mb_adaptive_frame_field_flag = rs.readBit();
+        // mb_adaptive_frame_field_flag = rs.readBit();
         fprintf(stderr, "场编码\n");
-
+        return -1;
 
     }
 
@@ -223,13 +271,14 @@ int NALSeqParameterSet::seq_parameter_set_data(ReadStream &rs) {
         vui_parameters(rs);
 
         if (timing_info_present_flag) {
-            fps = static_cast<double>(time_scale) / num_units_in_tick;
+            fps = static_cast<int>(time_scale / num_units_in_tick);
             //if (fixed_frame_rate_flag)
             {
-                fps /= 2.0;
+                fps /= 2;
             }
-        }
 
+            timeBase = {1, fps};
+        }
         //todo
     }
 
@@ -304,6 +353,30 @@ int NALSeqParameterSet::seq_parameter_set_data(ReadStream &rs) {
     //色度分量的图像高度
     //PicHeightInSamplesC = PicHeightInMapUnits * MbHeightC;
 
+    //Max_num_reorder_frames表示已解码图片缓冲区中帧数的上限
+    //用于在输出前存储帧、互补场对和非成对场
+    //max_num_reorder_frames的值应该在0到max_dec_frame_buffering的范围内
+    //当max_num_reorder_frames语法元素不存在时，max_num_reorder_frames值的推断如下
+    if (max_num_reorder_frames == -1) {
+        if ((profile_idc == 44
+             || profile_idc == 86
+             || profile_idc == 100
+             || profile_idc == 110
+             || profile_idc == 122
+             || profile_idc == 244) && constraint_set3_flag == 1) {
+            max_num_reorder_frames = 0;
+        } else {//profile_idc is not equal to 44, 86, 100, 110, 122, or 244 or constraint_set3_flag is equal to 0
+
+            //等于MaxDpbFrames
+            for (const levelLimits &i: levelTable) {
+                if (level_idc == i.MaxDpbMbs) {
+                    max_num_reorder_frames = static_cast<int>(std::fmin(
+                            i.MaxDpbMbs / (PicWidthInMbs * PicHeightInMapUnits), 16));
+                    break;
+                }
+            }
+        }
+    }
 
     return 0;
 }
@@ -421,8 +494,8 @@ int NALSeqParameterSet::vui_parameters(ReadStream &rs) {
         uint32_t max_bits_per_mb_denom = rs.readUE();
         uint32_t log2_max_mv_length_horizontal = rs.readUE();
         uint32_t log2_max_mv_length_vertical = rs.readUE();
-        uint32_t num_reorder_frames = rs.readUE();
-        uint32_t max_dec_frame_buffering = rs.readUE();
+        max_num_reorder_frames = static_cast<int>(rs.readUE());
+        max_dec_frame_buffering = static_cast<int>(rs.readUE());
     }
     return 0;
 }

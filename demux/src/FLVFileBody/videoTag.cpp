@@ -6,7 +6,7 @@
 static AVCDecoderConfigurationRecord AVCConfig;
 
 
-int VideoTag::parseData(std::ifstream &fs, uint32_t size, std::ofstream &videoOutFile) {
+int VideoTag::parseData(std::ifstream &fs, uint32_t size, std::ofstream &videoOutFile, uint32_t realTimestamp) {
 
     uint8_t *buf = new uint8_t[size]; // NOLINT(modernize-use-auto)
     fs.read(reinterpret_cast<char *>(buf), size);
@@ -24,6 +24,7 @@ int VideoTag::parseData(std::ifstream &fs, uint32_t size, std::ofstream &videoOu
             2：AVC end of sequence
          */
         AVCPacketType = rs.readMultiBit(8);
+
         /*
          * 表示pts相对于该帧dts的差值
          * 当B帧存在时，视频帧的pts和dts可能不同，dts在flv中是指tag header中的timestamp。
@@ -33,10 +34,18 @@ int VideoTag::parseData(std::ifstream &fs, uint32_t size, std::ofstream &videoOu
          * */
         compositionTime = rs.readMultiBit(24);
 
+        /*if (AVCPacketType == 1) {
+            printf("compositionTime = %d\n", compositionTime);
+            printf("pts = %d\n", compositionTime + realTimestamp);
+            printf("--------\n");
+        }*/
+        //printf("compositionTime=%d\n", compositionTime);
         if (AVCPacketType == 0) {
             AVCConfig.parseData(rs);
         } else if (AVCPacketType == 1) {
             analysisNalUint(rs, videoOutFile);
+        } else if (AVCPacketType == 2) {
+            printf("AVCPacketType == 2\n");
         }
     } else {
         delete[] buf;

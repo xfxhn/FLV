@@ -8,16 +8,22 @@ class ReadStream;
 
 class AdtsHeader {
 public:
+    uint8_t *data{nullptr};
+    uint32_t size{0};
+    int64_t pts{0};
+    int64_t dts{0};
     /*fixed_header*/
     /*帧同步标识一个帧的开始，固定为0xFFF*/
     uint16_t syncword{0};
-    /*MPEG 标示符。0表示MPEG-4，1表示MPEG-2*/
+    /*MPEG标识符，如果ADTS流中的音频数据为MPEG-2 AAC，则设置为' 1 '
+(参见ISO/IEC 13818-7)，如果音频数据是MPEG-4，则设置为' 0 '。另请参阅
+ISO/IEC 11172-3，第2.4.2.3款。*/
     uint8_t ID{0};
     /*表示使用哪一层 11=Layer1 10=Layer2 01=Layer3 00=保留。参考mpeg-1 part3 2.4.2.3小节，这里是AAC，不兼容mpeg1音频，固定为00*/
     uint8_t layer{0};
     /* 是否在音频位流中添加了冗余以方便错误检测和隐藏(参见mpeg-1 part3 protection_bit)。标识是否进行误码校验。0表示有CRC校验，1表示没有CRC校验*/
     uint8_t protection_absent{0};
-    /*标识使用哪个级别的AAC*/
+    /*标识使用哪个级别的AAC  id=0，这个值要减1*/
     uint8_t profile{0};
     uint8_t objectType{1};
     /*标识使用的采样率的下标*/

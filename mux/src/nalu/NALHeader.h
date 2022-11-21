@@ -13,7 +13,7 @@ public:
      * 如果当前NAL单元内是sps、pps、参考图像的slice或者slice data partition等重要数据，那么这个值不为0*/
     uint8_t nal_ref_idc{0};
     uint8_t nal_unit_type{5};
-
+    bool IdrPicFlag{false};
 public:
     void nal_unit(uint8_t header);
 

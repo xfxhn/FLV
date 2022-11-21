@@ -25,6 +25,8 @@ int AudioTag::parseData(std::ifstream &fs, uint32_t size, std::ofstream &audioOu
             ASCConfig.parseData(rs);
         } else if (AACPacketType == 1) {
             analysisRawAACData(rs, audioOutFile);
+        } else {
+            printf("AACPacketType = %d\n", AACPacketType);
         }
     } else {
         delete[] buf;
@@ -50,24 +52,10 @@ int AudioTag::analysisRawAACData(ReadStream &rs, std::ofstream &file) {
     header.adts_variable_header(ws);
 
 
-    /*std::ofstream file("resource/test.aac", std::ios::binary | std::ios::out | std::ios::trunc);
-    if (!file.is_open()) {
-        fprintf(stderr, "open file failed\n");
-        return -1;
-    }*/
     file.write(reinterpret_cast<const char *>(adts_header_buf), 7);
     file.write(reinterpret_cast<const char *>(rs.currentPtr), dataSize);
     rs.setBytePtr(dataSize);
-    //file.close();
 
-    /*while (true) {
-        if (rs.position >= rs.size) {
-            int a = 1;
-            break;
-        }
-
-
-    }*/
 
     return 0;
 }

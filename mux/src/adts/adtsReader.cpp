@@ -38,7 +38,8 @@ int AdtsReader::init(const char *filename) {
     return 0;
 }
 
-int AdtsReader::adts_sequence(AdtsHeader &header, uint8_t *&data, bool &stopFlag) {
+int AdtsReader::adts_sequence(AdtsHeader &header, bool &stopFlag) {
+    int ret;
     if (!buffer) {
         fprintf(stderr, "请初始化\n");
         return -1;
@@ -55,12 +56,16 @@ int AdtsReader::adts_sequence(AdtsHeader &header, uint8_t *&data, bool &stopFlag
         }
         /*读取每一帧的ADTS头*/
         //AdtsHeader adtsHeader;
-        header.adts_fixed_header(bs);
+        ret = header.adts_fixed_header(bs);
+        if (ret < 0) {
+            stopFlag = false;
+            fprintf(stderr, "解析adts fixed header失败\n");
+            return -1;
+        }
         header.adts_variable_header(bs);
-        data = &buffer[7];
-        //adts_frame(bs, adtsHeader);
 
         uint16_t frameLength = header.frame_length;
+
         /*如果这一帧的长度等于0或者大于filesize的话就退出，数据不对*/
         if (frameLength == 0 || frameLength > blockBufferSize) {
             stopFlag = false;
@@ -68,6 +73,9 @@ int AdtsReader::adts_sequence(AdtsHeader &header, uint8_t *&data, bool &stopFlag
             return -1;
             //break;
         }
+        header.data = &buffer[7];
+        header.size = frameLength - 7;
+
         advanceBuffer(frameLength);
     } else {
         fillByteSize = 0;
@@ -108,4 +116,12 @@ int AdtsReader::advanceBuffer(uint16_t length) {
         blockBufferSize -= size;
     }
     return 0;
+}
+
+AdtsReader::~AdtsReader() {
+    if (buffer) {
+        delete[] buffer;
+        buffer = nullptr;
+    }
+    fs.close();
 }

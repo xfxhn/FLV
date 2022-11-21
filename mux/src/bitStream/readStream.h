@@ -17,9 +17,9 @@ private:
 public:
 
     // buffer 的长度（单位 Byte）
-    uint32_t size = 0;
+    uint32_t size{0};
     // 读取到第几字节
-    uint32_t position;
+    uint32_t position{0};
 
 
     // 当前读取到了哪个字节的指针
@@ -42,7 +42,7 @@ public:
     int getString(char str[], uint32_t n);
 
     //获取n个bit
-    uint32_t getMultiBit(uint32_t n);
+    uint64_t getMultiBit(uint32_t n);
 
     /*字节对齐*/
     int byteAlignment();
@@ -52,6 +52,9 @@ public:
 
     /*返回还剩多少个bit未解码*/
     uint32_t bitsToDecode() const;
+
+
+    int more_rbsp_data();
 };
 
 #endif //DEMUX_READSTREAM_H

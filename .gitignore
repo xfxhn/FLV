@@ -4,3 +4,5 @@ cmake-build-debug
 .vs
 out
 CMakeSettings.json
+/mux/resource/
+/demux/resource/

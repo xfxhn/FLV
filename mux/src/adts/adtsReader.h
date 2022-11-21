@@ -19,7 +19,9 @@ private:
 public:
     int init(const char *filename);
 
-    int adts_sequence(AdtsHeader &header, uint8_t *&data, bool &stopFlag);
+    int adts_sequence(AdtsHeader &header, bool &stopFlag);
+
+    ~AdtsReader();
 
 private:
     int fillBuffer();

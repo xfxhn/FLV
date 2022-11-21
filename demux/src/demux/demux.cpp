@@ -24,10 +24,6 @@ int Demux::init() {
         fprintf(stderr, "open %s failed\n", filename);
         return -1;
     }
-    //buffer = new uint8_t[READ_MIN_BYTE_SIZE];
-
-    /*fs.read(reinterpret_cast<char *>(buffer), READ_MIN_BYTE_SIZE);
-    readFileSize = fs.gcount();*/
 
     return 0;
 }
@@ -35,12 +31,17 @@ int Demux::init() {
 
 int Demux::demux() {
 
+    int ret;
     /*header 9字节*/
     uint8_t buffer1[9];
     fs.read(reinterpret_cast<char *>(buffer1), 9);
     ReadStream rs(buffer1, 9);
     FLVHeader header;
-    header.parse(rs);
+    ret = header.parse(rs);
+    if (ret < 0) {
+        fprintf(stderr, "解析失败\n");
+        return -1;
+    }
     // advanceBuffer(header.getDataLength());
     uint8_t tagSize[4]{0};
 
@@ -55,17 +56,24 @@ int Demux::demux() {
         fprintf(stderr, "open file failed\n");
         return -1;
     }
+
     while (true) {
 
         fs.read(reinterpret_cast<char *>(tagSize), 4);
-
+        uint32_t length = *(uint32_t *) (&tagSize[0]);
         uint32_t PreviousTagSize = bswap_32(*(reinterpret_cast<uint32_t *>(&tagSize[0])));
+
+
         if (fs.peek() == EOF) {
             break;
         }
 
         FLVFileBody body;
-        body.parseHeader(fs, videoOutFile, audioOutFile);
+        ret = body.parseHeader(fs, videoOutFile, audioOutFile);
+        if (ret < 0) {
+            fprintf(stderr, "解析失败\n");
+            return -1;
+        }
 
     }
     videoOutFile.close();

@@ -1,5 +1,8 @@
 ﻿
 #include "tagHeader.h"
+
+#include <cstdio>
+
 #include "readStream.h"
 
 int TagHeader::parseData(ReadStream &rs) {
@@ -29,11 +32,17 @@ int TagHeader::parseData(ReadStream &rs) {
     /*扩展时间戳 如果Timestamp⼤于0xFFFFFF，将会使⽤这个字节。这个字节是时戳的⾼8位，上⾯的三个字节是低24位。*/
     TimestampExtended = rs.readMultiBit(8);
 
-    if (Timestamp > 0xFFFFFF) {
+    realTimestamp = TimestampExtended << 24 | Timestamp;
+    /*if (Timestamp > 0xFFFFFF) {
         realTimestamp = TimestampExtended << 24 | Timestamp;
     } else {
         realTimestamp = Timestamp;
-    }
+    }*/
+    /*if (TagType == 9) {
+        printf("realTimestamp=%d\n", realTimestamp);
+
+    }*/
+
 
     StreamID = rs.readMultiBit(24);
     return 0;

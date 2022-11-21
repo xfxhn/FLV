@@ -32,8 +32,8 @@ uint64_t ReadStream::readMultiBit(uint32_t n) {
     return result;
 }
 
-uint32_t ReadStream::getMultiBit(uint32_t n) {
-    uint32_t ret = 0;
+uint64_t ReadStream::getMultiBit(uint32_t n) {
+    uint64_t ret = 0;
 
     uint8_t *tempPtr = currentPtr;
     uint8_t tempBitsLeft = bitsLeft;

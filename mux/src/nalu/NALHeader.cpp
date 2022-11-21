@@ -5,6 +5,8 @@ void NALHeader::nal_unit(uint8_t header) {
     forbidden_zero_bit = header >> 7 & 1;
     nal_ref_idc = header >> 5 & 3;
     nal_unit_type = header & 31;
+    IdrPicFlag = nal_unit_type == 5;
+
     /*
      不解析
     nalUnitHeaderBytes = 1
