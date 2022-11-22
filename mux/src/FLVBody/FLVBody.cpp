@@ -1,6 +1,7 @@
 ﻿
 #include "FLVBody.h"
 
+#include "mux.h"
 #include "tagHeader.h"
 #include "videoTag.h"
 #include "audioTag.h"
@@ -12,7 +13,7 @@
 #include "NALPicture.h"
 
 
-uint32_t FLVBody::writeScript(std::ofstream &fs) {
+uint32_t FLVBody::writeScript(std::ofstream &fs, ScriptInfo &info) {
 
     uint32_t size = 0;
     TagHeader header;
@@ -27,8 +28,7 @@ uint32_t FLVBody::writeScript(std::ofstream &fs) {
     size += header.write(ws);
     fs.write(reinterpret_cast<const char *>(tagHeaderBuffer), 11);
 
-
-    //ScriptTag tag;
+    ScriptTag::setScriptInfo(info);
     ScriptTag::write(fs);
     return size + 413;
 }
@@ -205,31 +205,6 @@ uint32_t FLVBody::flushVideo(std::ofstream &fs) {
     WriteStream ws2(tagBodyBuffer, 5);
     size += tag.writeDesc(ws2);
     fs.write(reinterpret_cast<const char *>(tagBodyBuffer), 5);
-    return size;
-}
-
-uint32_t FLVBody::flushAudio(std::ofstream &fs) {
-    int32_t size = 0;
-    TagHeader header;
-    header.Filter = 0;
-    header.TagType = 8;
-    header.DataSize = 2;
-    header.Timestamp = 0;
-    header.TimestampExtended = 0;
-
-    uint8_t tagHeaderBuffer[11];
-    WriteStream ws1(tagHeaderBuffer, 11);
-    size += header.write(ws1);
-    fs.write(reinterpret_cast<const char *>(tagHeaderBuffer), 11);
-
-
-    AudioTag tag;
-    /*tag.AVCPacketType = 2;*/
-    tag.AACPacketType = 2;
-    uint8_t tagBodyBuffer[2];
-    WriteStream ws2(tagBodyBuffer, 2);
-    size += tag.writeDesc(ws2);
-    fs.write(reinterpret_cast<const char *>(tagBodyBuffer), 2);
     return size;
 }
 

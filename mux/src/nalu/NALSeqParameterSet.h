@@ -72,7 +72,7 @@ public:
 
     //辅助信息
 
-    int fps{25};
+    double fps{25.0};
     AVRational timeBase{1, 25};
 
     uint8_t aspect_ratio_idc{0};

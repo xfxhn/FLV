@@ -1,6 +1,4 @@
-﻿#pragma clang diagnostic push
-#pragma ide diagnostic ignored "modernize-use-auto"
-
+﻿
 #include "mux.h"
 
 #include "writeStream.h"
@@ -25,6 +23,7 @@ enum NalUintType {
     H264_NAL_PPS = 8
 };
 
+
 inline static uint32_t bswap_32(uint32_t x) {
     x = ((x << 8) & 0xFF00FF00) | ((x >> 8) & 0x00FF00FF);
     return (x >> 16) | (x << 16);
@@ -41,6 +40,8 @@ int64_t Mux::av_rescale_q(int64_t a, AVRational bq, AVRational cq) {
 int Mux::initAudio(const char *filename) {
     int ret;
 
+    uint32_t audioFileSize = 0;
+    uint32_t decodeFrameNumber = 0;
     AdtsReader reader;
     ret = reader.init(filename);
     if (ret < 0) {
@@ -58,15 +59,23 @@ int Mux::initAudio(const char *filename) {
             fprintf(stderr, "解析adts_sequence 失败\n");
             return ret;
         }
+        ++decodeFrameNumber;
+        audioFileSize += header.frame_length;
         header.dts = av_rescale_q(tick, {1, static_cast<int>(header.sample_rate)}, {1, 1000});
         header.pts = header.dts;
         tick += 1024;
         if (aacFlag) {
             sequenceOfDecodingOutputAudioFrame(header);
+            info.audiosamplerate = header.sample_rate;
+            info.audiosamplesize = 16;
+            info.stereo = header.channel_configuration == 2;
             aacFlag = false;
         }
         sequenceOfDecodingOutputAudioFrame(header);
     }
+
+    info.audioDuration = decodeFrameNumber / (info.audiosamplerate / 1024);
+    info.audiodatarate = (double) audioFileSize / 1024 * 8 / info.audioDuration;
     return ret;
 }
 
@@ -74,6 +83,9 @@ int Mux::initAudio(const char *filename) {
 int Mux::initVideo(const char *filename) {
 
     int ret;
+    uint32_t videoFileSize = 0;
+
+
     NaluReader nalUint;
     ret = nalUint.init(filename);
     if (ret < 0) {
@@ -95,6 +107,8 @@ int Mux::initVideo(const char *filename) {
 
     while (isStopLoop) {
         nalUint.readNalUint(data, size, startCodeLength, isStopLoop);
+
+        videoFileSize += size + startCodeLength;
         /*读取nalu header*/
         nalUnitHeader.nal_unit(data[0]);
         //NALHeader::ebsp_to_rbsp(data, size);
@@ -123,7 +137,6 @@ int Mux::initVideo(const char *filename) {
             picture->size += size;
             picture->data.push_back({size, buf, 2});
 
-
             NALHeader::ebsp_to_rbsp(data, size);
             ReadStream rs(data, size);
 
@@ -135,7 +148,7 @@ int Mux::initVideo(const char *filename) {
         } else if (nalUnitHeader.nal_unit_type == H264_NAL_SLICE || nalUnitHeader.nal_unit_type == H264_NAL_IDR_SLICE) {
 
             const uint32_t tempSize = size;
-            uint8_t *buf = new uint8_t[tempSize];
+            uint8_t *buf = new uint8_t[tempSize]; // NOLINT(modernize-use-auto)
             memcpy(buf, data, tempSize);
 
             NALHeader::ebsp_to_rbsp(data, size);
@@ -145,6 +158,7 @@ int Mux::initVideo(const char *filename) {
 
             /*先处理上一帧，如果tag有数据并且first_mb_in_slice=0表示有上一针*/
             if (sliceHeader.first_mb_in_slice == 0 && picture->useFlag) {
+
                 if (picture->pictureOrderCount == 0) {
                     decodeIdrFrameNumber = decodeFrameNumber * 2 + picture->pictureOrderCount;
                 }
@@ -176,8 +190,10 @@ int Mux::initVideo(const char *filename) {
 
             /*首先输出avc config*/
             if (avcFlag) {
-                /*先写入上一个tag的大小*/
                 sequenceOfDecodingOutputPicture(picture);
+                info.width = picture->sliceHeader.sps.PicWidthInSamplesL;
+                info.height = picture->sliceHeader.sps.PicHeightInSamplesL;
+                info.framerate = picture->sliceHeader.sps.fps;
                 avcFlag = false;
             }
 
@@ -212,7 +228,8 @@ int Mux::initVideo(const char *filename) {
     /*输出最后一帧*/
     sequenceOfDecodingOutputPicture(picture);
     // double duration = frameNumber / sps.fps;
-
+    info.videoDuration = (decodeFrameNumber + 1) / picture->sliceHeader.sps.fps;
+    info.videodatarate = (double) videoFileSize / 1024 * 8 / info.videoDuration;
     return ret;
 }
 
@@ -224,6 +241,7 @@ int Mux::flushFlv() {
     //tagSize = FLVBody::flushAudio(fs);
     const uint32_t length = bswap_32(tagSize);
     fs.write(reinterpret_cast<const char *>(&length), 4);
+    info.filesize = static_cast<double>(fs.tellp());
 
     writeScriptTag();
     return 0;
@@ -291,9 +309,9 @@ int Mux::packaging(const char *filename) {
         return -1;
     }
     writeFlvHeader();
-
     /*往后先偏移script tag的位置*/
     fs.seekp(4 + SCRIPT_TAG_SIZE, std::ios::cur);
+
     return 0;
 }
 
@@ -301,7 +319,7 @@ int Mux::writeScriptTag() {
     /*跳过FLV header 还有PreviousTagSize，PreviousTagSize四个字节，最开始=0*/
     fs.seekp(9 + 4, std::ios::beg);
 
-    tagSize = FLVBody::writeScript(fs);
+    tagSize = FLVBody::writeScript(fs, info);
 
     return 0;
 }

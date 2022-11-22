@@ -16,8 +16,29 @@ class ReadStream;
 
 class AdtsHeader;
 
+struct ScriptInfo {
+    double videoDuration{0};
+    double audioDuration{0};
+    double width{0};
+    double height{0};
+    double videodatarate{0};
+    double framerate{0};
+    double audiodatarate{0};
+    double audiosamplerate{0};
+    double audiosamplesize{0};
+    bool stereo{true};
+    double filesize{0};
+};
+
 class Mux {
+
+
+    /*script信息*/
 private:
+    ScriptInfo info;
+private:
+
+
     std::mutex mux;
     uint32_t tagSize{SCRIPT_TAG_SIZE};
 

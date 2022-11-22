@@ -25,7 +25,6 @@ ISO/IEC 11172-3，第2.4.2.3款。*/
     uint8_t protection_absent{0};
     /*标识使用哪个级别的AAC  id=0，这个值要减1*/
     uint8_t profile{0};
-    uint8_t objectType{1};
     /*标识使用的采样率的下标*/
     uint8_t sampling_frequency_index{0};
     /*对应的采样率*/

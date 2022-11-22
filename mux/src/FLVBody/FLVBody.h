@@ -10,9 +10,11 @@ class NALPicture;
 
 class AdtsHeader;
 
+class ScriptInfo;
+
 class FLVBody {
 public:
-    static uint32_t writeScript(std::ofstream &fs);
+    static uint32_t writeScript(std::ofstream &fs, ScriptInfo &info);
 
     static uint32_t writeVideo(const NALPicture *picture, std::ofstream &fs);
 
@@ -23,7 +25,6 @@ public:
     static uint32_t writeAudioConfig(const AdtsHeader &info, std::ofstream &fs);
 
     static uint32_t flushVideo(std::ofstream &fs);
-    static uint32_t flushAudio(std::ofstream &fs);
 
 };
 

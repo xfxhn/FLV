@@ -5,21 +5,38 @@
 #include <cstdio>
 #include <cstring>
 
+#include "mux.h"
 #include "writeStream.h"
 
 constexpr int LIST_LENGTH = 17;
+
+/*
+videocodecid
+10(mp4a) AAC
+7(avc1) H.264
+4 On2 VP6
+2 Sorenson H.263
+ */
+
+/*
+audiocodecid
+10(mp4a) AAC
+11 speex
+2 MP3
+ ...
+ */
 static Item list[LIST_LENGTH] = {
-        {"duration",          {false, 182.844000,      ""},                              number_marker},
-        {"width",             {false, 1280.000000,     ""},                              number_marker},
-        {"height",            {false, 720.000000,      ""},                              number_marker},
-        {"videodatarate",     {false, 839.552734,      ""},                              number_marker},
-        {"framerate",         {false, 25.0,            ""},                              number_marker},
-        {"videocodecid",      {false, 7.000000,        ""},                              number_marker},
-        {"audiodatarate",     {false, 63.671875,       ""},                              number_marker},
-        {"audiosamplerate",   {false, 44100.000000,    ""},                              number_marker},
-        {"audiosamplesize",   {false, 16.000000,       ""},                              number_marker},
+        {"duration",          {false, 0,               ""},                              number_marker},
+        {"width",             {false, 0,               ""},                              number_marker},
+        {"height",            {false, 0,               ""},                              number_marker},
+        {"videodatarate",     {false, 0,               ""},                              number_marker},
+        {"framerate",         {false, 0,               ""},                              number_marker},
+        {"videocodecid",      {false, 7.0,             ""},                              number_marker},
+        {"audiodatarate",     {false, 0,               ""},                              number_marker},
+        {"audiosamplerate",   {false, 0,               ""},                              number_marker},
+        {"audiosamplesize",   {false, 0,               ""},                              number_marker},
         {"stereo",            {true,  0.0,             ""},                              boolean_marker},
-        {"audiocodecid",      {false, 10.000000,       ""},                              number_marker},
+        {"audiocodecid",      {false, 10.0,            ""},                              number_marker},
         {"major_brand",       {false, 0.0,             "isom"},                          string_marker},
         {"minor_version",     {false, 0.0,             "512"},                           string_marker},
         {"compatible_brands", {false, 0.0,             "isomiso2avc1mp41"},              string_marker},
@@ -79,4 +96,19 @@ uint64_t ScriptTag::reverse(uint8_t *arr, int n) {
 
 
     return *((uint64_t *) arr);
+}
+
+int ScriptTag::setScriptInfo(ScriptInfo &info) {
+    list[0].u.n = std::max(info.videoDuration, info.audioDuration);
+    list[1].u.n = info.width;
+    list[2].u.n = info.height;
+    list[3].u.n = info.videodatarate;
+    list[4].u.n = info.framerate;
+    list[6].u.n = info.audiodatarate;
+    list[7].u.n = info.audiosamplerate;
+    list[8].u.n = info.audiosamplesize;
+    list[9].u.b = info.stereo;
+    list[16].u.n = info.filesize;
+
+    return 0;
 }

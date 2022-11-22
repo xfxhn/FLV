@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <fstream>
 
+class ScriptInfo;
+
 enum marker {
     number_marker,
     boolean_marker,
@@ -40,6 +42,9 @@ struct Item {
 class ScriptTag {
 public:
     static int write(std::ofstream &fs);
+
+
+    static int setScriptInfo(ScriptInfo &info);
 
     static uint64_t reverse(uint8_t *arr, int n);
 };

@@ -277,7 +277,7 @@ int NALSeqParameterSet::seq_parameter_set_data(ReadStream &rs) {
                 fps /= 2;
             }
 
-            timeBase = {1, fps};
+            timeBase = {1, (int) fps};
         }
         //todo
     }

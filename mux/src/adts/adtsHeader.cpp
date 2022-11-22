@@ -25,7 +25,6 @@ int AdtsHeader::adts_fixed_header(ReadStream &rs) {
         return -1;
     }
     profile = rs.readMultiBit(2);
-    /*objectType = profile;*/
     sampling_frequency_index = rs.readMultiBit(4);
     sample_rate = adts_sample_rates[sampling_frequency_index];
     private_bit = rs.readBit();
