@@ -13,6 +13,5 @@ add_executable(flv main.cpp)
 message(STATUS ${PROJECT_SOURCE_DIR}/mux1)
 target_include_directories(flv
         PRIVATE ${PROJECT_SOURCE_DIR}/src/mux
-        PRIVATE ${PROJECT_SOURCE_DIR}/src/bitStream
         )
 target_link_libraries(flv PRIVATE mux)
