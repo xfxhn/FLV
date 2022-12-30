@@ -115,7 +115,16 @@ int Mux::initVideo(const char *filename) {
 
 
         if (nalUnitHeader.nal_unit_type == H264_NAL_SPS) {
-            uint8_t *buf = new uint8_t[size];
+
+            if (picture->useFlag) {
+                /*如果执行这里，代表肯定解码完一整帧*/
+                ret = outputProcess(picture, gop, decodeFrameNumber, decodeIdrFrameNumber);
+                if (ret < 0) {
+                    fprintf(stderr, "输出失败\n");
+                }
+            }
+
+            uint8_t *buf = new uint8_t[size]; // NOLINT(modernize-use-auto)
             memcpy(buf, data, size);
 
             picture->size += size;
@@ -131,7 +140,14 @@ int Mux::initVideo(const char *filename) {
 
 
         } else if (nalUnitHeader.nal_unit_type == H264_NAL_PPS) {
-            uint8_t *buf = new uint8_t[size];
+            if (picture->useFlag) {
+                ret = outputProcess(picture, gop, decodeFrameNumber, decodeIdrFrameNumber);
+                if (ret < 0) {
+                    fprintf(stderr, "输出失败\n");
+                }
+            }
+
+            uint8_t *buf = new uint8_t[size]; // NOLINT(modernize-use-auto)
             memcpy(buf, data, size);
 
             picture->size += size;
@@ -158,32 +174,10 @@ int Mux::initVideo(const char *filename) {
 
             /*先处理上一帧，如果tag有数据并且first_mb_in_slice=0表示有上一针*/
             if (sliceHeader.first_mb_in_slice == 0 && picture->useFlag) {
-
-                if (picture->pictureOrderCount == 0) {
-                    decodeIdrFrameNumber = decodeFrameNumber * 2 + picture->pictureOrderCount;
-                }
-                picture->videoPts =
-                        av_rescale_q((decodeIdrFrameNumber + picture->pictureOrderCount) / 2, sliceHeader.sps.timeBase,
-                                     {1, 1000});
-                picture->videoDts = av_rescale_q(decodeFrameNumber++, sliceHeader.sps.timeBase, {1, 1000}) - 80;
-
-                /*
-                 * 参考图片标记过程
-                 * 当前图片的所有SLICE都被解码。
-                 * 参考8.2.5.1第一条规则
-                 * */
-                NALPicture *unoccupiedPicture;
-                ret = gop.decoding_finish(picture, unoccupiedPicture);
+                ret = outputProcess(picture, gop, decodeFrameNumber, decodeIdrFrameNumber);
                 if (ret < 0) {
-                    fprintf(stderr, "图像解析失败\n");
-                    return ret;
+                    fprintf(stderr, "输出失败\n");
                 }
-                /*按照显示顺序输出*/
-                //sequentialOutputPicture(picture);
-                /*按照解码顺序输出*/
-                sequenceOfDecodingOutputPicture(picture);
-                picture->useFlag = false;
-                picture = unoccupiedPicture;
             }
 
             picture->sliceHeader = sliceHeader;
@@ -210,7 +204,6 @@ int Mux::initVideo(const char *filename) {
                     sliceHeader.slice_type == H264_SLIECE_TYPE_B) {
                     gop.decoding_process_for_reference_picture_lists_construction(picture);
                 }
-
             }
 
             picture->size += tempSize;
@@ -219,7 +212,7 @@ int Mux::initVideo(const char *filename) {
         } else if (nalUnitHeader.nal_unit_type == H264_NAL_SEI) {
             //++i;
         } else {
-            fprintf(stderr, "不支持解析 nal_unit_type = %d", nalUnitHeader.nal_unit_type);
+            fprintf(stderr, "不支持解析 nal_unit_type = %d\n", nalUnitHeader.nal_unit_type);
         }
 
     }
@@ -233,6 +226,39 @@ int Mux::initVideo(const char *filename) {
     return ret;
 }
 
+int Mux::outputProcess(NALPicture *&picture, NALDecodedPictureBuffer &gop, uint32_t &decodeFrameNumber,
+                       uint32_t &decodeIdrFrameNumber) {
+    int ret = 0;
+    if (picture->pictureOrderCount == 0) {
+        decodeIdrFrameNumber = decodeFrameNumber * 2;// + picture->pictureOrderCount;
+    }
+    picture->videoPts =
+            av_rescale_q((decodeIdrFrameNumber + picture->pictureOrderCount) / 2,
+                         picture->sliceHeader.sps.timeBase,
+                         {1, 1000});
+    picture->videoDts =
+            av_rescale_q(decodeFrameNumber++, picture->sliceHeader.sps.timeBase, {1, 1000}) - 80;
+
+    /*
+     * 参考图片标记过程
+     * 当前图片的所有SLICE都被解码。
+     * 参考8.2.5.1第一条规则
+     * */
+    NALPicture *unoccupiedPicture;
+    ret = gop.decoding_finish(picture, unoccupiedPicture);
+    if (ret < 0) {
+        fprintf(stderr, "图像解析失败\n");
+        return ret;
+    }
+    /*按照显示顺序输出*/
+    //sequentialOutputPicture(picture);
+    /*按照解码顺序输出*/
+    sequenceOfDecodingOutputPicture(picture);
+    picture->useFlag = false;
+    picture = unoccupiedPicture;
+
+    return 0;
+}
 
 int Mux::flushFlv() {
 
@@ -413,6 +439,8 @@ int Mux::getOutPicture(NALPicture *picture, NALPicture *&outPicture, int max_num
 Mux::~Mux() {
     fs.close();
 }
+
+
 
 
 

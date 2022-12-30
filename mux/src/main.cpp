@@ -17,7 +17,7 @@ int main() {
     }
 
 
-    std::thread th1(&Mux::initVideo, &mux, "resource/ouput.h264");
+    std::thread th1(&Mux::initVideo, &mux, "resource/slice3gop2.h264");
     std::thread th2(&Mux::initAudio, &mux, "resource/ouput1.aac");
 
 

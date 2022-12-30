@@ -36,8 +36,6 @@ class Mux {
     /*script信息*/
 private:
     ScriptInfo info;
-private:
-
 
     std::mutex mux;
     uint32_t tagSize{SCRIPT_TAG_SIZE};
@@ -82,6 +80,8 @@ private:
 
     int flushPicture(const NALPicture *picture);
 
+    int outputProcess(NALPicture *&picture, NALDecodedPictureBuffer &gop, uint32_t &decodeFrameNumber,
+                      uint32_t &decodeIdrFrameNumber);
 
     static int64_t av_rescale_q(int64_t a, AVRational bq, AVRational cq);
 };
